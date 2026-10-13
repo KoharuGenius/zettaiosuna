@@ -1,0 +1,303 @@
+/* ----------------------------------
+       指定サイズ：幅300px × 高さ300px の矩形
+       ---------------------------------- */
+    .box-container {
+      top:100px;
+      left:100px;
+      width: 300px;
+      height: 300px;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(255, 204, 0, 0.4), 0 0 15px rgba(255, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      position: relative;
+      z-index: 10;
+      overflow: hidden; /* 回転するトラテープがはみ出さないように切り抜き */
+    }
+
+    /* トラテープ（黄/黒）背景層 - 等間隔・非変形のシームレスアニメーション */
+    .box-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        135deg,
+        #ffcc00 0px,
+        #ffcc00 15px,
+        #000000 15px,
+        #000000 30px
+      );
+      animation: move-hazard-tape 1.2s linear infinite;
+      z-index: -2;
+    }
+
+    /* 内側メインコンテンツエリア（トラテープ枠を8px残す） */
+    .box-container::after {
+      content: '';
+      position: absolute;
+      inset: 8px; /* 外枠トラテープの太さ */
+      background: radial-gradient(circle, #2a1111 0%, #120505 100%);
+      border-radius: 10px;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8);
+      z-index: -1;
+    }
+
+    /* 黄色と黒の長さ・太さを固定したまま位置だけをスライド移動させるキーフレーム */
+    @keyframes move-hazard-tape {
+      0% {
+        background-position: 0 0;
+      }
+      100% {
+        background-position: 42.426px 0; /* 30px * sqrt(2) で完璧に1周期シームレスループ */
+      }
+    }
+
+    .warning-tape {
+      position: absolute;
+      top: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #ffcc00;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    /* ----------------------------------
+       鈍く赤く明滅するボタン
+       ---------------------------------- */
+    .caution-button {
+      width: 260px;
+      height: 180px;
+      background: linear-gradient(145deg, #8b0000, #4a0000);
+      border: 2px solid #ff4d4d;
+      border-radius: 12px;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      outline: none;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.2);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      animation: pulse-red 2.4s infinite ease-in-out;
+    }
+
+    .caution-button:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 5px rgba(255, 0, 0, 0.8);
+    }
+
+    /* 鈍い赤の明滅アニメーション */
+    @keyframes pulse-red {
+      0% {
+        box-shadow: 0 0 10px rgba(200, 0, 0, 0.3), inset 0 0 5px rgba(255, 0, 0, 0.2);
+        border-color: #aa2222;
+        background: linear-gradient(145deg, #660000, #330000);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(255, 30, 30, 0.8), 0 0 50px rgba(255, 0, 0, 0.4), inset 0 0 15px rgba(255, 100, 100, 0.5);
+        border-color: #ff6666;
+        background: linear-gradient(145deg, #a00000, #550000);
+      }
+      100% {
+        box-shadow: 0 0 10px rgba(200, 0, 0, 0.3), inset 0 0 5px rgba(255, 0, 0, 0.2);
+        border-color: #aa2222;
+        background: linear-gradient(145deg, #660000, #330000);
+      }
+    }
+
+    /* テキスト用：鈍く赤く明滅するアニメーション */
+    @keyframes pulse-text-red {
+      0% {
+        color: #aa2222;
+        text-shadow: 0 0 4px rgba(170, 34, 34, 0.4);
+      }
+      50% {
+        color: #ff4d4d;
+        text-shadow: 0 0 12px rgba(255, 77, 77, 0.9), 0 0 20px rgba(255, 0, 0, 0.6);
+      }
+      100% {
+        color: #aa2222;
+        text-shadow: 0 0 4px rgba(170, 34, 34, 0.4);
+      }
+    }
+
+    .btn-border-line {
+      color: #ff3333;
+      font-size: 12px;
+      line-height: 1;
+      opacity: 0.8;
+      margin: 4px 0;
+      animation: pulse-text-red 2.4s infinite ease-in-out;
+    }
+
+    .btn-caution-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #ff4d4d;
+      margin: 4px 0;
+      letter-spacing: 1px;
+      animation: pulse-text-red 2.4s infinite ease-in-out;
+    }
+
+    .btn-sub-text {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ff3333;
+      letter-spacing: 2px;
+      margin-top: 2px;
+      animation: pulse-text-red 2.4s infinite ease-in-out;
+    }
+
+    /* ----------------------------------
+       カットインエフェクト (You Win!)
+       ---------------------------------- */
+    .cutin-overlay {
+      position: fixed;
+      top: 100px;
+      left: 100px;
+      width: 1000px;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .cutin-overlay.active {
+      visibility: visible;
+      animation: cutin-appear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes cutin-appear {
+      0% {
+        opacity: 0;
+        transform: scale(2) rotate(-10deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+    }
+
+    /* 斜め背景バンパー */
+    .cutin-banner {
+      position: absolute;
+      width: 1000px;
+      height: 180px;
+      background: linear-gradient(90deg, #ff0055, #ffcc00, #00ffcc, #ff0055);
+      background-size: 100% 100%;
+      transform: rotate(-8deg);
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: gradient-shift 1s infinite linear;
+      border-top: 6px solid #fff;
+      border-bottom: 6px solid #fff;
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* ド派手テキスト */
+    .cutin-text {
+      font-size: 80px;
+      font-weight: 900;
+      font-style: italic;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      -webkit-text-stroke: 3px #000;
+      text-shadow: 
+        4px 4px 0px #000,
+        -4px -4px 0px #000,
+        4px -4px 0px #000,
+        -4px 4px 0px #000,
+        0 0 30px #ffff00,
+        0 0 60px #ff0000;
+      animation: text-bounce 0.4s infinite alternate ease-in-out;
+    }
+
+    @keyframes text-bounce {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+
+    /* ----------------------------------
+       DOM要素による花火エフェクト
+       ---------------------------------- */
+    .firework-particle {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 90;
+      will-change: transform, opacity;
+    }
+
+    /* 画面フラッシュ効果 */
+    .flash-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 80;
+    }
+
+    .flash-bg.flash {
+      animation: flash-anim 0.4s ease-out;
+    }
+
+    @keyframes flash-anim {
+      0% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+
+.twist-button {  
+  /* 遠近感の設定 */
+  perspective: 200px;
+  transform-style: preserve-3d;
+
+  /* アニメーションの適用 (3秒周期 / 無限ループ / 往復動作) */
+  animation: continuousTwist 3s ease-in-out infinite alternate;
+}
+
+/* 常時ループする「ひねり」キーフレーム */
+@keyframes continuousTwist {
+  0% {
+    /* 初期状態：反対方向に軽くひねる */
+    transform: rotateX(-15deg) rotateY(25deg) rotateZ(-5deg);
+    box-shadow: 5px 10px 15px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    /* 変化後：大きく反対側へひねる */
+    transform: rotateX(15deg) rotateY(-25deg) rotateZ(5deg);
+    box-shadow: -10px 15px 25px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* （任意）ホバー時にアニメーションを一時停止して押しやすくする */
+.twist-button:hover {
+  animation-play-state: paused;
+}
+
+
