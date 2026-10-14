@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>映画風カウントダウン (音付き)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #0d0d0d;
+      font-family: 'Courier New', Courier, monospace;
+      color: #e0e0e0;
+    }
+
+    /* タイトルと説明 */
+    .header {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: #cccccc;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 12px;
+      color: #777777;
+    }
+
+    /* 100px × 100px の規定サイズ矩形 */
+    .countdown-container {
+      width: 100px;
+      height: 100px;
+      position: relative;
+      background: radial-gradient(circle, #2a2a2a 0%, #111111 100%);
+      border: 3px solid #444444;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.9), inset 0 0 10px rgba(0, 0, 0, 0.8);
+      user-select: none;
+    }
+
+    /* 十字線（映画フィルム風のクロスヘア） */
+    .crosshair-v {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+
+    .crosshair-h {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+
+    /* 外側の固定円ガイドライン */
+    .circle-guide {
+      position: absolute;
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      z-index: 2;
+    }
+
+    .circle-guide-inner {
+      position: absolute;
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      z-index: 2;
+    }
+
+    /* 扇形が広がるアニメーション円 (conic-gradient) */
+    .sector-circle {
+      position: absolute;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: conic-gradient(
+        rgba(255, 255, 255, 0.45) 0deg var(--angle, 0deg),
+        transparent var(--angle, 0deg) 360deg
+      );
+      z-index: 3;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    /* 中央テキスト (③ → ② → ① → Start!) */
+    .countdown-text {
+      position: relative;
+      z-index: 4;
+      font-size: 32px;
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 0 8px rgba(0, 0, 0, 0.9), 0 0 12px rgba(255, 255, 255, 0.6);
+      text-align: center;
+      line-height: 1;
+    }
+
+    /* Start! 表示時の特別スタイル */
+    .countdown-text.start-active {
+      font-size: 15px;
+      font-family: sans-serif;
+      color: #ffea00;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(255, 234, 0, 0.9);
+    }
+
+    /* 操作ボタン */
+    .controls {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .start-btn {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      background: linear-gradient(185deg, #3a3a3a 0%, #1a1a1a 100%);
+      color: #ffffff;
+      border: 1px solid #666666;
+      border-radius: 20px;
+      cursor: pointer;
+      outline: none;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+    }
+
+    .start-btn:hover {
+      background: linear-gradient(185deg, #4a4a4a 0%, #2a2a2a 100%);
+      border-color: #999999;
+      transform: translateY(-1px);
+    }
+
+    .start-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .audio-badge {
+      font-size: 11px;
+      color: #888888;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .audio-badge::before {
+      content: '🔊';
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>CINEMA COUNTDOWN</h1>
+    <p>100px × 100px Canvas</p>
+  </div>
+
+  <!-- 幅100px x 高さ100px のカウントダウン枠 -->
+  <div class="countdown-container" id="countdownContainer">
+    <div class="crosshair-v"></div>
+    <div class="crosshair-h"></div>
+    <div class="circle-guide"></div>
+    <div class="circle-guide-inner"></div>
+    <!-- 扇形アニメーション -->
+    <div class="sector-circle" id="sectorCircle"></div>
+    <!-- カウントダウンテキスト -->
+    <div class="countdown-text" id="countdownText">③</div>
+  </div>
+
+  <!-- 操作パネル -->
+  <div class="controls">
+    <button class="start-btn" id="startBtn">▶ カウントダウン開始</button>
+    <div class="audio-badge">Web Audio API 合成音</div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const sectorCircle = document.getElementById('sectorCircle');
+      const countdownText = document.getElementById('countdownText');
+      const startBtn = document.getElementById('startBtn');
+
+      const steps = ['③', '②', '①', 'Start!'];
+      const durationPerStep = 1000; // 1秒間隔
+
+      let currentStepIndex = 0;
+      let startTime = null;
+      let animationFrameId = null;
+
+      // Web Audio API の文脈オブジェクト (ユーザー操作で起動)
+      let audioCtx = null;
+
+      /**
+       * Web Audio API による「ピッ / ポーン」効果音発生関数
+       * @param {number} freq - 周波数 (Hz)
+       * @param {number} duration - 音の長さ (秒)
+       * @param {string} type - 波形の種類 ('sine', 'square', etc.)
+       */
+      function playBeep(freq, duration, type = 'sine') {
+        if (!audioCtx) return;
+
+        // サウンドコンポーネントの生成
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        // 音量のエンベロープ (フェードアウト処理でクリックノイズ防止)
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      }
+
+      // ステップごとのサウンド切り替え
+      function triggerStepSound(stepIndex) {
+        if (stepIndex < 3) {
+          // 「ピッ」（③, ②, ①）: 880Hz (A5) の短い短音
+          playBeep(880, 0.1, 'sine');
+        } else {
+          // 「ポーン！」（Start!）: 1760Hz (A6) の余韻のある高音
+          playBeep(1760, 0.6, 'sine');
+        }
+      }
+
+      // カウントダウンのアニメーションループ
+      function animateCountdown(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        if (currentStepIndex < steps.length - 1) {
+          const stepProgress = Math.min(elapsed / durationPerStep, 1);
+          const angle = stepProgress * 360;
+
+          // 扇形の進行状況を更新
+          sectorCircle.style.setProperty('--angle', `${angle}deg`);
+
+          if (stepProgress >= 1) {
+            currentStepIndex++;
+            startTime = timestamp;
+
+            // 新しい文字に切り替え
+            countdownText.textContent = steps[currentStepIndex];
+
+            if (currentStepIndex === steps.length - 1) {
+              // 「Start!」到達時
+              countdownText.classList.add('start-active');
+              sectorCircle.style.setProperty('--angle', '360deg');
+              triggerStepSound(currentStepIndex);
+              cancelAnimationFrame(animationFrameId);
+              return;
+            } else {
+              // 「②」「①」の表示時
+              triggerStepSound(currentStepIndex);
+            }
+          }
+
+          animationFrameId = requestAnimationFrame(animateCountdown);
+        }
+      }
+
+      // カウントダウン全体の開始処理
+      function startCountdown() {
+        // Web Audio API の初期化 (ユーザーのクリックによって発動させる必要がある)
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContext();
+        } else if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+
+        // 初期状態にリセット
+        currentStepIndex = 0;
+        startTime = null;
+        countdownText.textContent = steps[0];
+        countdownText.classList.remove('start-active');
+        sectorCircle.style.setProperty('--angle', '0deg');
+
+        // ③の音を鳴らしてアニメーションスタート
+        triggerStepSound(0);
+        animationFrameId = requestAnimationFrame(animateCountdown);
+      }
+
+      // イベントリスナー接続
+      startBtn.addEventListener('click', startCountdown);
+    });
+  </script>
+</body>
+</html>
