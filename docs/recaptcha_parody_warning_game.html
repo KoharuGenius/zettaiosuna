@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>reCAPTCHA Parody - Warning Verification</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #eef2f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .recaptcha-card {
+      background: #ffffff;
+      border: 1px solid #d3d3d3;
+      border-radius: 3px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      width: 320px;
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .captcha-header {
+      background: #1a73e8;
+      color: #ffffff;
+      padding: 14px;
+      border-radius: 2px 2px 0 0;
+      margin: -10px -10px 10px -10px;
+    }
+
+    .captcha-header .sub-text {
+      font-size: 13px;
+      opacity: 0.9;
+      line-height: 1.3;
+    }
+
+    .captcha-header .target-text {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 6px 0 2px 0;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .captcha-header .hint-text {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .grid-board {
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3px;
+      background: #222222;
+      border: 2px solid #222222;
+      position: relative;
+    }
+
+    .tile {
+      background: #121216;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, filter 0.15s ease;
+      overflow: hidden;
+      border-radius: 2px;
+    }
+
+    .tile:hover {
+      filter: brightness(1.25);
+    }
+
+    .tile:active {
+      transform: scale(0.96);
+    }
+
+    .warning-label {
+      font-size: 15px;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1.3;
+      white-space: nowrap;
+      animation: pulse-red 1.8s infinite ease-in-out;
+      pointer-events: none;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% {
+        color: #ff3333;
+        text-shadow: 0 0 3px rgba(255, 0, 0, 0.5), 0 0 8px rgba(255, 0, 0, 0.3);
+        transform: scale(1);
+      }
+      50% {
+        color: #ff8888;
+        text-shadow: 0 0 12px rgba(255, 50, 50, 0.9), 0 0 20px rgba(255, 0, 0, 0.7);
+        transform: scale(1.06);
+      }
+    }
+
+    .tile.selected {
+      transform: scale(0.92);
+      border: 2px solid #1a73e8;
+      box-shadow: inset 0 0 0 2px rgba(26, 115, 232, 0.5);
+    }
+
+    .tile .check-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 26px;
+      height: 26px;
+      background: #1a73e8;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: bold;
+      opacity: 0;
+      transform: scale(0) rotate(-45deg);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+      z-index: 2;
+    }
+
+    .tile.selected .check-badge {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+
+    .tile.selected::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(26, 115, 232, 0.25);
+      pointer-events: none;
+    }
+
+    .captcha-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .footer-icons {
+      display: flex;
+      gap: 12px;
+      color: #757575;
+      font-size: 18px;
+    }
+
+    .footer-icon-btn {
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .footer-icon-btn:hover {
+      color: #1a73e8;
+    }
+
+    .verify-btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      font-weight: bold;
+      font-size: 13px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .verify-btn:hover {
+      background: #1557b0;
+    }
+
+    .cutin-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      border-radius: 3px;
+    }
+
+    .cutin-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .ok-stamp {
+      font-size: 80px;
+      font-weight: 900;
+      color: #2ecc71;
+      text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71, 0 4px 10px rgba(0, 0, 0, 0.8);
+      border: 8px solid #2ecc71;
+      padding: 10px 30px;
+      border-radius: 20px;
+      transform: scale(3) rotate(-15deg);
+      opacity: 0;
+      box-shadow: 0 0 30px #2ecc71, inset 0 0 20px #2ecc71;
+      letter-spacing: 2px;
+    }
+
+    .cutin-overlay.active .ok-stamp {
+      animation: stamp-cutin 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .success-msg {
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 25px;
+      opacity: 0;
+      transform: translateY(15px);
+      text-align: center;
+    }
+
+    .cutin-overlay.active .success-msg {
+      animation: fade-up 0.4s ease 0.4s forwards;
+    }
+
+    .retry-btn {
+      margin-top: 20px;
+      background: #2ecc71;
+      color: #000;
+      border: none;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+      opacity: 0;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .cutin-overlay.active .retry-btn {
+      animation: fade-up 0.4s ease 0.6s forwards;
+    }
+
+    .retry-btn:hover {
+      background: #27ae60;
+      transform: scale(1.05);
+    }
+
+    @keyframes stamp-cutin {
+      0% {
+        opacity: 0;
+        transform: scale(4) rotate(-35deg);
+      }
+      70% {
+        opacity: 1;
+        transform: scale(0.9) rotate(-12deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(-15deg);
+      }
+    }
+
+    @keyframes fade-up {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Background rays effect for cut-in */
+    .rays {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: repeating-conic-gradient(
+        from 0deg,
+        rgba(46, 204, 113, 0.15) 0deg 15deg,
+        transparent 15deg 30deg
+      );
+      border-radius: 50%;
+      animation: spin 12s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="recaptcha-card">
+    
+    <!-- Top Header -->
+    <div class="captcha-header">
+      <div class="sub-text">以下の画像をすべて選択してください</div>
+      <div class="target-text">⚠ 警告 ⚠</div>
+      <div class="hint-text">該当するものがなくなったら [確認] をクリックしてください。</div>
+    </div>
+
+    <!-- 300px x 300px Board -->
+    <div class="grid-board" id="gridBoard">
+      <!-- 9 tiles generated dynamically -->
+    </div>
+
+    <!-- Bottom Footer -->
+    <div class="captcha-footer">
+      <div class="footer-icons">
+        <span class="footer-icon-btn" id="reloadBtn" title="リロード">🔄</span>
+        <span class="footer-icon-btn" title="音声">🔊</span>
+        <span class="footer-icon-btn" title="情報">ℹ️</span>
+      </div>
+      <button class="verify-btn" id="verifyBtn">確認</button>
+    </div>
+
+    <!-- Cut-in Overlay -->
+    <div class="cutin-overlay" id="cutinOverlay">
+      <div class="rays"></div>
+      <div class="ok-stamp">OK</div>
+      <div class="success-msg">🎉 認証完了！<br>あなたは見事に警告をクリアしました</div>
+      <button class="retry-btn" id="retryBtn">もう一度検証する</button>
+    </div>
+
+  </div>
+
+  <script>
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+    }
+
+    // Sound effect for clicking a tile
+    function playClickSound(isSelected) {
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        
+        if (isSelected) {
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+          osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        } else {
+          osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+          osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.08); // A3
+        }
+
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+      } catch (e) {
+        // Audio fallback
+      }
+    }
+
+    // Sound effect for OK Cut-In
+    function playSuccessSound() {
+      try {
+        initAudio();
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
+          
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.08 + 0.4);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.08);
+          osc.stop(audioCtx.currentTime + idx * 0.08 + 0.4);
+        });
+      } catch (e) {
+        // Audio fallback
+      }
+    }
+
+    const gridBoard = document.getElementById('gridBoard');
+    const cutinOverlay = document.getElementById('cutinOverlay');
+    const retryBtn = document.getElementById('retryBtn');
+    const reloadBtn = document.getElementById('reloadBtn');
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    let selectedCount = 0;
+
+    // Create 9 Grid Tiles
+    function createGrid() {
+      gridBoard.innerHTML = '';
+      selectedCount = 0;
+
+      for (let i = 0; i < 9; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        
+        // Warning Text inside tile
+        const warningLabel = document.createElement('div');
+        warningLabel.className = 'warning-label';
+        warningLabel.innerHTML = '⚠<br>警告<br>⚠';
+        
+        // Checkmark Badge
+        const checkBadge = document.createElement('div');
+        checkBadge.className = 'check-badge';
+        checkBadge.textContent = '✔';
+
+        tile.appendChild(warningLabel);
+        tile.appendChild(checkBadge);
+
+        // Click Event listener
+        tile.addEventListener('click', () => toggleTile(tile));
+
+        gridBoard.appendChild(tile);
+      }
+    }
+
+    function toggleTile(tile) {
+      tile.classList.toggle('selected');
+      const isSelected = tile.classList.contains('selected');
+      
+      playClickSound(isSelected);
+
+      if (isSelected) {
+        selectedCount++;
+      } else {
+        selectedCount--;
+      }
+
+      // Check if all 9 tiles are selected
+      if (selectedCount === 9) {
+        setTimeout(triggerCutIn, 250);
+      }
+    }
+
+    function triggerCutIn() {
+      playSuccessSound();
+      cutinOverlay.classList.add('active');
+    }
+
+    function resetGame() {
+      cutinOverlay.classList.remove('active');
+      createGrid();
+    }
+
+    // Verify Button Manual Click
+    verifyBtn.addEventListener('click', () => {
+      if (selectedCount === 9) {
+        triggerCutIn();
+      } else {
+        alert(`すべての「⚠ 警告 ⚠」を選択してください！（現在: ${selectedCount}/9）`);
+      }
+    });
+
+    // Reset handlers
+    retryBtn.addEventListener('click', resetGame);
+    reloadBtn.addEventListener('click', resetGame);
+
+    // Initialize on start
+    createGrid();
+  </script>
+</body>
+</html>
